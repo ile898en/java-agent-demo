@@ -3,6 +3,7 @@ package com.mariana.demo.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
 
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -12,16 +13,16 @@ public class DemoAppService {
 
     private static final Logger logger = LoggerFactory.getLogger(DemoAppService.class);
 
-    public String hello() {
-        int randomInt = new Random().nextInt(500);
+    public String hello(String requesterId) {
+        logger.info("DemoAppService#hello: {} say hello.", requesterId);
+        int randomInt = new Random().nextInt();
         try {
-            TimeUnit.MILLISECONDS.sleep(randomInt);
+            TimeUnit.MICROSECONDS.sleep(randomInt);
         } catch (InterruptedException e) {
-            logger.error("DemoAppService#sleep() throws exception: ", e);
-            throw new RuntimeException("DemoAppService#sleep() throws exception " + e.getMessage());
+            logger.error("DemoAppService#hello: sleep() error. ", e);
+            throw new RuntimeException("DemoAppService#hello: sleep() error " + e.getMessage());
         }
         return "hello world.";
     }
-
 
 }

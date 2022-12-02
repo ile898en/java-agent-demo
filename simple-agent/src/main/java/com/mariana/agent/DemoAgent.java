@@ -17,7 +17,7 @@ public class DemoAgent {
                 .type(isAnnotatedWith(
                         named(SPRING_CONTROLLER_ANNOTATION_1).or(named(SPRING_CONTROLLER_ANNOTATION_2))
                 ))
-                .transform()
+                .transform(null);   // TODO
     }
 
 }
