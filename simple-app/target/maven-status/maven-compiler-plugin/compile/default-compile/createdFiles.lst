@@ -1,0 +1,5 @@
+com/mariana/demo/controller/DemoController.class
+com/mariana/demo/starter/SimpleAppApplication.class
+com/mariana/demo/service/DemoAppService.class
+com/mariana/demo/controller/DemoController$DemoRequest.class
+com/mariana/demo/controller/HealthCheckController.class
