@@ -1,4 +1,4 @@
-package com.mariana.agent;
+package com.mariana.agent.starter;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,21 +11,17 @@ import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.jar.JarFile;
 
-public class DemoAgent {
+public class AgentStarter {
 
-    public static final Class<DemoAgent> TYPE = DemoAgent.class;
-
-    private static final String JAR_FILE_NAME = "demo-agent.jar";
-    private static final String CLASS_FILE_NAME = "com.mariana.agent.DemoAgent";
-    private static final String ATTACH_STATUS_KEY = "DemoAgent.attached";
+    public static final Class<AgentStarter> TYPE = AgentStarter.class;
 
     public static void premain(String args, Instrumentation instrumentation) {
-        System.out.println("DemoAgent#premain started with args: " + args);
+        System.out.println("AgentStarter#premain started with args: " + args);
         startAgent(args, instrumentation, true);
     }
 
     public static void agentmain(String args, Instrumentation instrumentation) {
-        System.out.println("DemoAgent#agentmain started with args: " + args);
+        System.out.println("AgentStarter#agentmain started with args: " + args);
         startAgent(args, instrumentation, false);
     }
 
@@ -34,15 +30,6 @@ public class DemoAgent {
         // checking early as getting a property might not be provided
         securityManagerCheck();
 
-        if (Boolean.getBoolean(ATTACH_STATUS_KEY)) {
-            // agent is already attached; don't attach twice
-            // don't fail as this is a valid case
-            // for example, Spring Boot restarts the application in dev mode
-            return;
-        }
-
-        // TODO: add some pre-check logic like 'check jvm version' here
-
         // workaround for classloader deadlock https://bugs.openjdk.java.net/browse/JDK-8194653
         FileSystems.getDefault();
 
@@ -50,7 +37,7 @@ public class DemoAgent {
             File agentJarFile = getAgentJarFile(args);
             instrumentation.appendToBootstrapClassLoaderSearch(new JarFile(agentJarFile, false));
         } catch (URISyntaxException | IOException e) {
-            System.err.println("[demo-agent] ERROR Failed to start agent.");
+            System.err.println("[simple-agent] ERROR Failed to start agent.");
             e.printStackTrace();
         }
 
@@ -85,10 +72,10 @@ public class DemoAgent {
             sm.checkPermission(new AllPermission());
         } catch (SecurityException e) {
             // note: we can't get the actual path of the agent here as the Security Manager might prevent us from finding our own jar.
-            System.err.println("[demo-agent] WARN Security manager without agent grant-all permission, adding the following snippet to security policy is recommended:");
-            System.err.println("[demo-agent] WARN grant codeBase \"file:/path/to/demo-agent.jar\" {");
-            System.err.println("[demo-agent] WARN     permission java.security.AllPermission;");
-            System.err.println("[demo-agent] WARN };");
+            System.err.println("[simple-agent] WARN Security manager without agent grant-all permission, adding the following snippet to security policy is recommended:");
+            System.err.println("[simple-agent] WARN grant codeBase \"file:/path/to/simple-agent.jar\" {");
+            System.err.println("[simple-agent] WARN     permission java.security.AllPermission;");
+            System.err.println("[simple-agent] WARN };");
         }
     }
 
