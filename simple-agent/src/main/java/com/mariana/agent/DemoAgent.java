@@ -1,10 +1,7 @@
 package com.mariana.agent;
 
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
+import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -12,28 +9,27 @@ import java.nio.file.FileSystems;
 import java.security.AllPermission;
 import java.security.CodeSource;
 import java.security.ProtectionDomain;
+import java.util.jar.JarFile;
 
 public class DemoAgent {
 
     public static final Class<DemoAgent> TYPE = DemoAgent.class;
-
-    private static final Logger logger = LoggerFactory.getLogger(TYPE);
 
     private static final String JAR_FILE_NAME = "demo-agent.jar";
     private static final String CLASS_FILE_NAME = "com.mariana.agent.DemoAgent";
     private static final String ATTACH_STATUS_KEY = "DemoAgent.attached";
 
     public static void premain(String args, Instrumentation instrumentation) {
-        logger.info("DemoAgent#premain started with args: {}", args);
-        init(args, instrumentation, true);
+        System.out.println("DemoAgent#premain started with args: " + args);
+        startAgent(args, instrumentation, true);
     }
 
     public static void agentmain(String args, Instrumentation instrumentation) {
-        logger.info("DemoAgent#agentmain started with args: {}", args);
-        init(args, instrumentation, false);
+        System.out.println("DemoAgent#agentmain started with args: " + args);
+        startAgent(args, instrumentation, false);
     }
 
-    private synchronized static void init(String args, Instrumentation instrumentation, boolean premain) {
+    private synchronized static void startAgent(String args, Instrumentation instrumentation, boolean premain) {
 
         // checking early as getting a property might not be provided
         securityManagerCheck();
@@ -52,8 +48,8 @@ public class DemoAgent {
 
         try {
             File agentJarFile = getAgentJarFile(args);
-
-        } catch (URISyntaxException e) {
+            instrumentation.appendToBootstrapClassLoaderSearch(new JarFile(agentJarFile, false));
+        } catch (URISyntaxException | IOException e) {
             System.err.println("[demo-agent] ERROR Failed to start agent.");
             e.printStackTrace();
         }
