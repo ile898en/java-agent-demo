@@ -12,7 +12,13 @@ public class AgentStarter {
 
     public static void premain(String args, Instrumentation instrumentation) {
         LOGGER.info("AgentStarter#premain starting with args {}", args);
-        ConfigInitializer.initializeConfig(args);
+        // init config
+        ConfigInitializer.initialize(args);
+
+        // load plugins
+
+        // add transformers
+
     }
 
     public static void agentmain(String args, Instrumentation instrumentation) {

@@ -36,7 +36,7 @@ public class ConfigInitializer {
      * 配置优先级：agent.config < System Properties < Agent Options
      * 为了简单起见，这里仅支持从agent.config文件中读取配置
      */
-    public static void initializeConfig(String args) {
+    public static void initialize(String args) {
 
         AGENT_SETTINGS = new Properties();
         // override config by agent.config
