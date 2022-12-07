@@ -25,6 +25,8 @@ public class Config {
         public static ResolverType RESOLVER = ResolverType.PATTERN;
         // 默认的日志Pattern
         public static String PATTERN = "%level %timestamp %thread %class : %msg %throwable";
+        // 默认 最多保留多少个日志文件
+        public static int MAX_HISTORY_FILES = -1;
     }
 
     public static class Jvm {
