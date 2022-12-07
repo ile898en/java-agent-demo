@@ -1,13 +1,28 @@
 package com.mariana.agent.core.config;
 
+import com.mariana.agent.common.util.Length;
 import com.mariana.agent.core.logging.core.LogLevel;
 import com.mariana.agent.core.logging.core.LogOutput;
 import com.mariana.agent.core.logging.core.ResolverType;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class Config {
 
     public static class Agent {
+        @Length(20)
+        public static String NAMESPACE = "";
+        @Length(50)
         public static String SERVICE_NAME = "";
+        @Length(20)
+        public static String CLUSTER = "";
+        @Length(50)
+        public volatile static String INSTANCE_NAME = "";
+    }
+
+    public static class Collector {
+        public static String BACKEND_SERVICE = "";
     }
 
     public static class Logging {
@@ -30,11 +45,27 @@ public class Config {
     }
 
     public static class Jvm {
-
+        /**
+         * The buffer size of collected JVM info.
+         */
+        public static int BUFFER_SIZE = 60 * 10;
     }
 
     public static class Plugin {
+        /**
+         * Control the length of the peer field.
+         */
+        public static int PEER_MAX_LENGTH = 200;
 
+        /**
+         * Exclude activated plugins
+         */
+        public static String EXCLUDE_PLUGINS = "";
+
+        /**
+         * Mount the folders of the plugins. The folder path is relative to agent.jar.
+         */
+        public static List<String> MOUNT = Arrays.asList("plugins", "activations");
     }
 
 }

@@ -25,7 +25,7 @@ public class AgentPackagePath {
         return AGENT_PACKAGE_PATH != null;
     }
 
-    public static File findPath() throws AgentPackageNotFoundException {
+    private static File findPath() throws AgentPackageNotFoundException {
         String classResourcePath = AgentPackagePath.class.getName()
                 .replaceAll("\\.", "/") + ".class";
 

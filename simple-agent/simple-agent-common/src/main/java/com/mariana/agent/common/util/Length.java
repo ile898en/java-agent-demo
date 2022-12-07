@@ -16,20 +16,19 @@
  *
  */
 
-package com.mariana.agent.core.config;
+package com.mariana.agent.common.util;
 
-public class Constants {
-    public static String PATH_SEPARATOR = System.getProperty("file.separator", "/");
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-    public static String LINE_SEPARATOR = System.getProperty("line.separator", "\n");
-
-    public static String EMPTY_STRING = "";
-
-    public static CharSequence SERVICE_NAME_PART_CONNECTOR = "|";
-
-    // The name of the layer that represents agent-installed services,
-    // which is defined at https://github.com/apache/skywalking/blob/85ce1645be53e46286f36c0ea206c60db2d1a716/oap-server/server-core/src/main/java/org/apache/skywalking/oap/server/core/analysis/Layer.java#L30
-    public static String EVENT_LAYER_NAME = "GENERAL";
-
-    public static int NULL_VALUE = 0;
+/**
+ * The length rule of the target field.
+ */
+@Target({ElementType.FIELD})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Length {
+    int value();
 }
+
