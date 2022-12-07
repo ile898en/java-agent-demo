@@ -1,9 +1,17 @@
 # java-agent-demo
 
-尝试自己实现一个简单的APM系统
+尝试模仿SkyWalking实现一个简版的APM
 
-## QuickStart
-使用mvn命令生成对应的jar包，然后启动目标应用程序时添加jvm参数: -javaagent demo-agent.jar
-```shell
- cd simple-agent && mvn package -Dcheckstyle.skip -DskipTests
-```
+## Feature List
+
+## Todo List
+- Tracing日志
+- 在调用链路中透传自定义标记，例如透传「压测标」
+- 收集JVM指标数据
+
+## Quick Start
+
+## SkyWalking部分源码解析
+- [SkyWalking Agent启动流程详解](docs/Agent-Startup.md)
+- [SkyWalking中的日志框架详解](docs/Logging-Module.md)
+- [SkyWalking中用到的maven插件详解](docs/Maven-Plugins-Used.md)
