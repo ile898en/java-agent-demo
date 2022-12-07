@@ -1,5 +1,6 @@
 package com.mariana.agent.starter;
 
+import com.mariana.agent.core.config.ConfigInitializer;
 import com.mariana.agent.core.logging.api.ILog;
 import com.mariana.agent.core.logging.api.LogManager;
 
@@ -11,7 +12,7 @@ public class AgentStarter {
 
     public static void premain(String args, Instrumentation instrumentation) {
         LOGGER.info("AgentStarter#premain starting with args {}", args);
-
+        ConfigInitializer.initializeConfig(args);
     }
 
     public static void agentmain(String args, Instrumentation instrumentation) {
