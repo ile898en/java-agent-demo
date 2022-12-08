@@ -31,6 +31,9 @@ public class AgentPackagePath {
 
         URL resource = ClassLoader.getSystemClassLoader().getResource(classResourcePath);
         if (resource != null) {
+
+            // The url str would be like:
+            // jar:file:/path/to/agent/simple-agent.jar!/com/mariana/agent/core/boot/AgentPackagePath.class.
             String urlString = resource.toString();
 
             LOGGER.debug("The beacon class location is {}.", urlString);
