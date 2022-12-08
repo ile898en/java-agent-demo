@@ -1,112 +1,38 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package com.mariana.agent.core.config;
 
 import com.google.common.base.Strings;
 import com.mariana.agent.common.util.Length;
-import com.mariana.agent.core.boot.AgentPackageNotFoundException;
-import com.mariana.agent.core.boot.AgentPackagePath;
-import com.mariana.agent.core.logging.api.ILog;
-import com.mariana.agent.core.logging.api.LogManager;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+/**
+ * Init a class's static fields by a {@link Properties}, including static fields and static inner classes.
+ * <p>
+ */
 public class ConfigInitializer {
-
-    private static final ILog LOGGER = LogManager.getLogger(ConfigInitializer.class);
-
-    private static final String ENV_KEY_SPECIFIED_CONFIG_PATH = "agent_config";
-    private static final String DEFAULT_AGENT_FILE_PATH = "/config/agent.config";
-    private static boolean IS_INIT_COMPLETED = false;
-    private static Properties AGENT_SETTINGS;
-
-    public static boolean isIsInitCompleted() {
-        return IS_INIT_COMPLETED;
-    }
-
-    /**
-     * SkyWalking是先从配置文件加载配置，然后从系统环境变量覆盖配置，最后从agent启动参数覆盖配置，即：
-     * 配置优先级：agent.config < System Properties < Agent Options
-     * 为了简单起见，这里仅支持从agent.config文件中读取配置
-     */
-    public static void initialize(String args) {
-
-        AGENT_SETTINGS = new Properties();
-        // override config by agent.config
-        try (InputStreamReader configFileStream = loadConfig()) {
-            AGENT_SETTINGS.load(configFileStream);
-            // SkyWalking的配置文件里是支持占位符`${}`的，解析起来比较麻烦;
-            // 简单起见，我们这里直接不支持占位符，哈哈
-        } catch (Exception e) {
-            LOGGER.error("Failed to read the config file, continue to use default config.");
-        }
-
-        // override config by system env (unimplemented)
-        // override config by agent args (unimplemented)
-
-        initializeConfig(Config.class);
-
-        // check the service name
-        if (Strings.isNullOrEmpty(Config.Agent.SERVICE_NAME)) {
-            throw new ExceptionInInitializerError("`agent.service_name` missing.");
-        } else {
-            if (Strings.isNullOrEmpty(Config.Agent.NAMESPACE) || Strings.isNullOrEmpty(Config.Agent.CLUSTER)) {
-                Config.Agent.SERVICE_NAME = new StringJoiner("|")
-                        .add(Config.Agent.SERVICE_NAME)
-                        .add(Config.Agent.NAMESPACE)
-                        .add(Config.Agent.CLUSTER)
-                        .toString();
-            }
-        }
-
-//        // check the backend service: 暂时还没有AgentServer，暂时不校验此项
-//        if (Strings.isNullOrEmpty(Config.Collector.BACKEND_SERVICE)) {
-//            throw new ExceptionInInitializerError("`collector.backend_service` is missing.");
-//        }
-
-        IS_INIT_COMPLETED = true;
-    }
-
-    public static void initializeConfig(Class<? extends Config> configClass) {
-        if (AGENT_SETTINGS == null) {
-            LOGGER.error("Plugin configs have to be initialized after core config initialization.");
-            return;
-        }
-        try {
-            ConfigInitializer.initialize(AGENT_SETTINGS, configClass);
-        } catch (IllegalAccessException e) {
-            LOGGER.error(e,
-                    "Failed to set the agent settings {}"
-                            + " to Config={} ",
-                    AGENT_SETTINGS, configClass
-            );
-        }
-    }
-
-    private static InputStreamReader loadConfig() throws AgentPackageNotFoundException, ConfigNotFoundException {
-        String specifiedConfigPath = System.getProperty(ENV_KEY_SPECIFIED_CONFIG_PATH);
-        File configFile = Strings.isNullOrEmpty(specifiedConfigPath)
-                ? new File(AgentPackagePath.getPath(), DEFAULT_AGENT_FILE_PATH) : new File(specifiedConfigPath);
-
-        if (configFile.exists() && configFile.isFile()) {
-            try {
-                LOGGER.info("config file found in {}", configFile);
-                return new InputStreamReader(new FileInputStream(configFile), StandardCharsets.UTF_8);
-            } catch (FileNotFoundException e) {
-                throw new ConfigNotFoundException("Failed to load agent.config", e);
-            }
-        }
-        throw new ConfigNotFoundException("Failed to load agent.config");
-    }
-
-    private static void initialize(Properties properties, Class<?> rootConfigType) throws IllegalAccessException {
+    public static void initialize(Properties properties, Class<?> rootConfigType) throws IllegalAccessException {
         initNextLevel(properties, rootConfigType, new ConfigDesc());
     }
 
@@ -116,54 +42,43 @@ public class ConfigInitializer {
             if (Modifier.isPublic(field.getModifiers()) && Modifier.isStatic(field.getModifiers())) {
                 String configKey = (parentDesc + "." + field.getName()).toLowerCase();
                 Class<?> type = field.getType();
-                if (Map.class.isAssignableFrom(type)) {
+
+                if (type.equals(Map.class)) {
                     /*
-                     * Map config format is, config_key[map_key]=map_value, such as plugin.opgroup.resttemplate.rule[abc]=/url/path
-                     * "config_key[]=" will generate an empty Map , user could use this mechanism to set an empty Map
+                     * Map config format is, config_key[map_key]=map_value
+                     * Such as plugin.opgroup.resttemplate.rule[abc]=/url/path
                      */
+                    // Deduct two generic types of the map
                     ParameterizedType genericType = (ParameterizedType) field.getGenericType();
                     Type[] argumentTypes = genericType.getActualTypeArguments();
-                    Type keyType = argumentTypes[0];
-                    Type valueType = argumentTypes[1];
-                    // A chance to set an empty map
-                    if (properties.containsKey(configKey + "[]")) {
-                        Map currentValue = (Map) field.get(null);
-                        if (currentValue != null && !currentValue.isEmpty()) {
-                            field.set(null, initEmptyMap(type));
-                        }
-                    } else {
-                        // Set the map from config key and properties
-                        Map map = readMapType(type, configKey, properties, keyType, valueType);
-                        if (map.size() != 0) {
-                            field.set(null, map);
+
+                    Type keyType = null;
+                    Type valueType = null;
+                    if (argumentTypes != null && argumentTypes.length == 2) {
+                        // Get key type and value type of the map
+                        keyType = argumentTypes[0];
+                        valueType = argumentTypes[1];
+                    }
+                    Map map = (Map) field.get(null);
+                    // Set the map from config key and properties
+                    setForMapType(configKey, map, properties, keyType, valueType);
+                } else {
+                    /*
+                     * Others typical field type
+                     */
+                    String value = properties.getProperty(configKey);
+                    // Convert the value into real type
+                    final Length lengthDefine = field.getAnnotation(Length.class);
+                    if (lengthDefine != null) {
+                        if (value != null && value.length() > lengthDefine.value()) {
+                            value = value.substring(0, lengthDefine.value());
                         }
                     }
-                } else if (properties.containsKey(configKey)) {
-                    //In order to guarantee the default value could be reset as empty , we parse the value even if it's blank
-                    String propertyValue = properties.getProperty(configKey, "");
-                    if (Collection.class.isAssignableFrom(type)) {
-                        ParameterizedType genericType = (ParameterizedType) field.getGenericType();
-                        Type argumentType = genericType.getActualTypeArguments()[0];
-                        Collection collection = convertToCollection(argumentType, type, propertyValue);
-                        field.set(null, collection);
-                    } else {
-                        // Convert the value into real type
-                        final Length lengthDefine = field.getAnnotation(Length.class);
-                        if (lengthDefine != null && propertyValue.length() > lengthDefine.value()) {
-                            if (Strings.isNullOrEmpty(propertyValue)) {
-                                propertyValue = Strings.nullToEmpty(propertyValue);
-                            } else {
-                                propertyValue = propertyValue.substring(0, lengthDefine.value());
-                            }
-                            System.err.printf("The config value will be truncated , because the length max than %d : %s -> %s%n", lengthDefine.value(), configKey, propertyValue);
-                        }
-                        Object convertedValue = convertToTypicalType(type, propertyValue);
-                        if (convertedValue != null) {
-                            field.set(null, convertedValue);
-                        }
+                    Object convertedValue = convertToTypicalType(type, value);
+                    if (convertedValue != null) {
+                        field.set(null, convertedValue);
                     }
                 }
-
             }
         }
         for (Class<?> innerConfiguration : recentConfigType.getClasses()) {
@@ -173,29 +88,6 @@ public class ConfigInitializer {
         }
     }
 
-    private static Collection<Object> convertToCollection(Type argumentType, Class<?> type, String propertyValue) {
-        Collection<Object> collection;
-        if (type.equals(Set.class) || type.equals(HashSet.class)) {
-            collection = new HashSet<>();
-        } else if (type.equals(TreeSet.class)) {
-            collection = new TreeSet<>();
-        } else if (type.equals(List.class) || type.equals(LinkedList.class)) {
-            collection = new LinkedList<>();
-        } else if (type.equals(ArrayList.class)) {
-            collection = new ArrayList<>();
-        } else {
-            throw new UnsupportedOperationException("Config parameter type support Set,HashSet,TreeSet,List,LinkedList,ArrayList");
-        }
-        if (Strings.isNullOrEmpty(propertyValue) || Strings.isNullOrEmpty(propertyValue.trim())) {
-            return collection;
-        }
-        Arrays.stream(propertyValue.split(","))
-                .map(v -> convertToTypicalType(argumentType, v))
-                .forEach(collection::add);
-        return collection;
-    }
-
-
     /**
      * Convert string value to typical type.
      *
@@ -204,9 +96,10 @@ public class ConfigInitializer {
      * @return converted value or null
      */
     private static Object convertToTypicalType(Type type, String value) {
-        if (Strings.isNullOrEmpty(value) || Strings.isNullOrEmpty(value.trim())) {
+        if (value == null || type == null) {
             return null;
         }
+
         Object result = null;
         if (String.class.equals(type)) {
             result = value;
@@ -220,6 +113,8 @@ public class ConfigInitializer {
             result = Float.valueOf(value);
         } else if (double.class.equals(type) || Double.class.equals(type)) {
             result = Double.valueOf(value);
+        } else if (List.class.equals(type)) {
+            result = convert2List(value);
         } else if (type instanceof Class) {
             Class<?> clazz = (Class<?>) type;
             if (clazz.isEnum()) {
@@ -232,23 +127,22 @@ public class ConfigInitializer {
     /**
      * Set map items.
      *
-     * @param type       the filed type
      * @param configKey  config key must not be null
+     * @param map        map to set must not be null
      * @param properties properties must not be null
      * @param keyType    key type of the map
      * @param valueType  value type of the map
      */
-    private static Map readMapType(Class<?> type,
-                                   String configKey,
-                                   Properties properties,
-                                   final Type keyType,
-                                   final Type valueType) {
+    private static void setForMapType(String configKey, Map<Object, Object> map, Properties properties,
+                                      final Type keyType, final Type valueType) {
 
         Objects.requireNonNull(configKey);
+        Objects.requireNonNull(map);
         Objects.requireNonNull(properties);
-        Map<Object, Object> map = initEmptyMap(type);
+
         String prefix = configKey + "[";
         String suffix = "]";
+
         properties.forEach((propertyKey, propertyValue) -> {
             String propertyStringKey = propertyKey.toString();
             if (propertyStringKey.startsWith(prefix) && propertyStringKey.endsWith(suffix)) {
@@ -267,20 +161,26 @@ public class ConfigInitializer {
                 if (valueObj == null) {
                     valueObj = propertyValue;
                 }
+
                 map.put(keyObj, valueObj);
             }
         });
-        return map;
     }
 
-    private static Map<Object, Object> initEmptyMap(Class<?> type) {
-        if (type.equals(Map.class) || type.equals(HashMap.class)) {
-            return new HashMap<>();
-        } else if (type.equals(TreeMap.class)) {
-            return new TreeMap<>();
-        } else {
-            throw new UnsupportedOperationException("Config parameter type support Map,HashMap,TreeMap");
+    private static List<String> convert2List(String value) {
+        if (Strings.isNullOrEmpty(value)) {
+            return Collections.emptyList();
         }
+        List<String> result = new LinkedList<>();
+
+        String[] segments = value.split(",");
+        for (String segment : segments) {
+            String trimmedSegment = segment.trim();
+            if (!Strings.isNullOrEmpty(trimmedSegment)) {
+                result.add(trimmedSegment);
+            }
+        }
+        return result;
     }
 
 }
@@ -289,7 +189,7 @@ class ConfigDesc {
     private LinkedList<String> descs = new LinkedList<>();
 
     void append(String currentDesc) {
-        if (Strings.isNullOrEmpty(currentDesc)) {
+        if (!Strings.isNullOrEmpty(currentDesc)) {
             descs.addLast(currentDesc);
         }
     }

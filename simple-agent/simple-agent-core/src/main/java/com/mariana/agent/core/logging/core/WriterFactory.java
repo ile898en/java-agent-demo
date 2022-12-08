@@ -4,7 +4,7 @@ import com.google.common.base.Strings;
 import com.mariana.agent.core.boot.AgentPackageNotFoundException;
 import com.mariana.agent.core.boot.AgentPackagePath;
 import com.mariana.agent.core.config.Config;
-import com.mariana.agent.core.config.ConfigInitializer;
+import com.mariana.agent.core.config.AgentConfigInitializer;
 import com.mariana.agent.core.plugin.PluginFinder;
 
 public class WriterFactory {
@@ -42,7 +42,7 @@ public class WriterFactory {
     }
 
     private static boolean isAgentInitCompleted() {
-        return ConfigInitializer.isIsInitCompleted()
+        return AgentConfigInitializer.isIsInitCompleted()
                 && PluginFinder.isIsPluginInitCompleted()
                 && AgentPackagePath.isPathFound();
     }
