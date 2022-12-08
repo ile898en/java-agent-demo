@@ -12,61 +12,108 @@
     <artifactId>simple-agent-starter</artifactId>
 
     <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <premain.class>com.mariana.agent.starter.AgentStarter</premain.class>
+        <can.redefine.classes>true</can.redefine.classes>
+        <can.retransform.classes>true</can.retransform.classes>
+
+        <shade.net.bytebuddy.source>net.bytebuddy</shade.net.bytebuddy.source>
+        <shade.net.bytebuddy.target>${shade.package}.${shade.net.bytebuddy.source}</shade.net.bytebuddy.target>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>net.bytebuddy</groupId>
-            <artifactId>byte-buddy</artifactId>
-            <version>1.12.16</version>
+            <groupId>com.mariana</groupId>
+            <artifactId>simple-agent-core</artifactId>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 
     <build>
+        <finalName>simple-agent</finalName>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>3.3.0</version>
-                <configuration>
-                    <finalName>demo-agent</finalName>
-                    <appendAssemblyId>false</appendAssemblyId>
-                    <!--                    <descriptors>-->
-                    <!--                        <descriptor>-->
-                    <!--                            src/main/assembly/assembly.xml-->
-                    <!--                        </descriptor>-->
-                    <!--                    </descriptors>-->
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                    <archive>
-                        <manifestEntries>
-                            <Premain-Class>com.mariana.agent.SimpleAgent</Premain-Class>
-                            <Agent-Class>com.mariana.agent.SimpleAgent</Agent-Class>
-                            <Can-Redefine-Classes>true</Can-Redefine-Classes>
-                            <Can-Retransform-Classes>true</Can-Retransform-Classes>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
+                <artifactId>maven-shade-plugin</artifactId>
                 <executions>
                     <execution>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
                         <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <createDependencyReducedPom>true</createDependencyReducedPom>
+                            <createSourcesJar>true</createSourcesJar>
+                            <shadeSourcesContent>true</shadeSourcesContent>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Premain-Class>${premain.class}</Premain-Class>
+                                        <Can-Redefine-Classes>${can.redefine.classes}</Can-Redefine-Classes>
+                                        <Can-Retransform-Classes>${can.retransform.classes}</Can-Retransform-Classes>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>*:gson</exclude>
+                                    <exclude>io.grpc:*</exclude>
+                                    <exclude>io.netty:*</exclude>
+                                    <exclude>io.opencensus:*</exclude>
+                                    <exclude>com.google.*:*</exclude>
+                                    <exclude>com.google.guava:guava</exclude>
+                                    <exclude>org.checkerframework:checker-compat-qual</exclude>
+                                    <exclude>org.codehaus.mojo:animal-sniffer-annotations</exclude>
+                                    <exclude>io.perfmark:*</exclude>
+                                    <exclude>org.slf4j:*</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>${shade.net.bytebuddy.source}</pattern>
+                                    <shadedPattern>${shade.net.bytebuddy.target}</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <filters>
+                                <filter>
+                                    <artifact>net.bytebuddy:byte-buddy</artifact>
+                                </filter>
+                            </filters>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.10.1</version>
-                <configuration>
-                    <source>11</source>
-                    <target>11</target>
-                </configuration>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <delete dir="${project.basedir}/../../dist" />
+                            </target>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>package</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <mkdir dir="${project.basedir}/../agent" />
+                                <copy file="${project.build.directory}/simple-agent.jar" tofile="${project.basedir}/../agent/simple-agent.jar" overwrite="true" />
+                                <mkdir dir="${project.basedir}/../agent/config" />
+                                <mkdir dir="${project.basedir}/../agent/logs" />
+                                <copydir src="${project.basedir}/../config" dest="${project.basedir}/../agent/config" forceoverwrite="true" />
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

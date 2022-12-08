@@ -1,12 +1,19 @@
 package com.mariana.agent.core.config;
 
+import com.alibaba.fastjson.JSON;
+import com.google.common.primitives.Chars;
 import com.mariana.agent.common.util.Length;
 import com.mariana.agent.core.logging.core.LogLevel;
 import com.mariana.agent.core.logging.core.LogOutput;
 import com.mariana.agent.core.logging.core.ResolverType;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
 
 public class Config {
 
@@ -29,7 +36,7 @@ public class Config {
         // 日志文件目录，默认使用"{agent_jar_dir}/logs/"
         public static String DIR = "";
         // 日志文件名
-        public static String FILE_NAME = "agent.log";
+        public static String FILE_NAME = "simple-agent.log";
         // 日志文件默认大小
         public static int MAX_FILE_SIZE = 300 * 1024 * 1024;
         // 默认日志级别
@@ -66,6 +73,34 @@ public class Config {
          * Mount the folders of the plugins. The folder path is relative to agent.jar.
          */
         public static List<String> MOUNT = Arrays.asList("plugins", "activations");
+    }
+
+    public static void print() {
+        final String rootName = Config.class.getSimpleName();
+        final CharSequence c = ".";
+
+        Map<String, Object> configMap = new HashMap<>();
+
+        Class<?>[] classes = Config.class.getClasses();
+
+        for (Class<?> aClass : classes) {
+            Field[] fields = aClass.getFields();
+            for (Field field : fields) {
+                int mod = field.getModifiers();
+                if (Modifier.isPublic(mod) && Modifier.isStatic(mod)) {
+                    String key = rootName + c + field.getName();
+                    try {
+                        Object value = field.get(null);
+                        configMap.put(key, value);
+                    } catch (IllegalAccessException e) {
+                        System.err.println("Config field `" + key + "` get error. " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+
+        System.out.println(JSON.toJSONString(configMap));
     }
 
 }

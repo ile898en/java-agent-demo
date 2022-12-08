@@ -1,6 +1,8 @@
 package com.mariana.agent.starter;
 
+import com.alibaba.fastjson.JSON;
 import com.mariana.agent.core.config.AgentConfigInitializer;
+import com.mariana.agent.core.config.Config;
 import com.mariana.agent.core.logging.api.ILog;
 import com.mariana.agent.core.logging.api.LogManager;
 
@@ -14,6 +16,7 @@ public class AgentStarter {
         LOGGER.info("AgentStarter#premain starting with args {}", args);
         // init config
         AgentConfigInitializer.initialize(args);
+        Config.print(); // print config on console
 
         // load plugins
 
